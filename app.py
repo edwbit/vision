@@ -41,7 +41,7 @@ def main():
         uploaded_image = st.file_uploader("Upload an image (max size: 20 MB)", type=["jpg", "jpeg", "png"])
 
         # Model selection
-        model_options = ["llama-3.2-11b-vision-preview", "llava-v1.5-7b-4096-preview"]
+        model_options = ["llava-v1.5-7b-4096-preview","llama-3.2-11b-vision-preview"]
         selected_model = st.selectbox("**Select Model**", model_options)
 
         if uploaded_image is not None:
