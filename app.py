@@ -19,7 +19,7 @@ def encode_image(image):
 def main():
     st.title("AI Image Analysis")
 
-    # Check if the API key is already in session state
+    # Initialize session state for API key
     if 'api_key' not in st.session_state:
         st.session_state['api_key'] = ''
     
