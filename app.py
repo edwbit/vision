@@ -3,8 +3,8 @@ import base64
 from groq import Groq
 
 # Constants for the Groq API
-GROQ_API_KEY = "your_groq_api_key"  # Replace with your actual API key
-MODEL_NAME = "llava-v1.5-7b-4096-preview"  # Replace with the correct model
+GROQ_API_KEY = GROQ_API_KEY  # Replace with your actual API key
+MODEL_NAME = llama-3.2-11b-vision-preview"  # Replace with the correct model
 
 # Function to encode the image as base64
 def encode_image(image):
