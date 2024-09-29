@@ -28,8 +28,8 @@ def main():
     # Input box for the API key if not already provided
     if not st.session_state['api_key_entered']:
         api_key_input = st.text_input("Enter your Groq API Key", type="password")
-        
-        # Update session state if the API key is entered
+
+        # Update session state if the API key is entered and confirmed with Enter key
         if api_key_input:
             st.session_state['api_key'] = api_key_input  # Store the API key in session state
             st.session_state['api_key_entered'] = True  # Set flag to indicate API key has been entered
