@@ -1,15 +1,14 @@
 import streamlit as st
 import base64
-from groq import Groq
+from groq import Groq, AuthenticationError
 
 # Constants
-MODEL_NAME = "llama-3.2-11b-vision-preview"  # Use the correct model
-TEMPERATURE = 1  # Adjust as needed for randomness
-MAX_TOKENS = 1024  # Limit the response length
-TOP_P = 1  # Set to 1 to consider all tokens
-STREAM = False  # Disable token-by-token streaming for now
-STOP = None  # No stop sequence for now
-UPLOAD_LIMIT_MB = 20  # Upload limit in MB
+TEMPERATURE = 1
+MAX_TOKENS = 1024
+TOP_P = 1
+STREAM = False
+STOP = None
+UPLOAD_LIMIT_MB = 20
 
 # Function to encode the image as base64
 def encode_image(image):
@@ -32,14 +31,18 @@ def main():
 
         # Update session state if the API key is entered
         if api_key_input:
-            st.session_state['api_key'] = api_key_input  # Store the API key in session state
-            st.session_state['api_key_entered'] = True  # Set flag to indicate API key has been entered
+            st.session_state['api_key'] = api_key_input
+            st.session_state['api_key_entered'] = True
             st.success("API key entered successfully!")
 
     # If the API key is entered, continue with the app
     if st.session_state['api_key_entered']:
         # Upload an image
         uploaded_image = st.file_uploader("Upload an image (max size: 20 MB)", type=["jpg", "jpeg", "png"])
+
+        # Model selection
+        model_options = ["llama-3.2-11b-vision-preview", "llava-v1.5-7b-4096-preview"]
+        selected_model = st.selectbox("**Select Model**", model_options)
 
         if uploaded_image is not None:
             # Check if the uploaded image exceeds the size limit
@@ -52,38 +55,47 @@ def main():
                 # Encode the image to base64
                 base64_image = encode_image(uploaded_image)
 
-                # Initialize Groq client
-                client = Groq(api_key=st.session_state['api_key'])
+                try:
+                    # Initialize Groq client
+                    client = Groq(api_key=st.session_state['api_key'])
 
-                # Create chat completion for initial image analysis
-                if st.button("Analyze Image"):
-                    # Create chat completion for image analysis
-                    initial_analysis = client.chat.completions.create(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text":"Analyze, identify and describe the image carefully. Give impression based on analysis and desctiption"},
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/jpeg;base64,{base64_image}",
+                    # Create chat completion for initial image analysis
+                    if st.button("Analyze Image"):
+                        # Use the selected model from the dropdown
+                        MODEL_NAME = selected_model
+
+                        initial_analysis = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {"type": "text", "text": "Analyze, identify and describe the image carefully. Give impression based on analysis and description"},
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                            },
                                         },
-                                    },
-                                ],
-                            }
-                        ],
-                        model=MODEL_NAME,
-                        temperature=TEMPERATURE,
-                        max_tokens=MAX_TOKENS,
-                        top_p=TOP_P,
-                        stream=STREAM,
-                        stop=STOP
-                    )
+                                    ],
+                                }
+                            ],
+                            model=MODEL_NAME,
+                            temperature=TEMPERATURE,
+                            max_tokens=MAX_TOKENS,
+                            top_p=TOP_P,
+                            stream=STREAM,
+                            stop=STOP
+                        )
 
-                    # Display the AI response to the image
-                    initial_response = initial_analysis.choices[0].message.content
-                    st.write("AI Initial Analysis:", initial_response)
+                        # Display the AI response to the image
+                        initial_response = initial_analysis.choices[0].message.content
+                        st.write("AI Initial Analysis:", initial_response)
+                
+                except AuthenticationError:
+                    st.error("Authentication failed. Please check your API key.")
+                except Exception as e:
+                    # Optionally, log the error for debugging
+                    st.error("An unexpected error occurred. Please try again later.")
 
 if __name__ == "__main__":
     main()
