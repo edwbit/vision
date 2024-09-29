@@ -3,7 +3,7 @@ import base64
 from groq import Groq
 
 # Constants
-MODEL_NAME = "llava-v1.5-7b-4096-preview"  # Replace with the correct model
+MODEL_NAME = "llama-3.2-11b-vision-preview"  # Use the correct model
 TEMPERATURE = 1  # Adjust as needed for randomness
 MAX_TOKENS = 1024  # Limit the response length
 TOP_P = 1  # Set to 1 to consider all tokens
@@ -25,7 +25,11 @@ def main():
     # Input box for the API key if not already provided
     if not st.session_state['api_key']:
         st.session_state['api_key'] = st.text_input("Enter your Groq API Key", type="password")
-    
+
+    # Initialize session state for conversation messages
+    if 'messages' not in st.session_state:
+        st.session_state['messages'] = []
+
     # If the API key is entered, continue with the app
     if st.session_state['api_key']:
         # Upload an image
@@ -35,61 +39,72 @@ def main():
             # Display the uploaded image
             st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
 
-            # Prompt for the user to ask questions about the image
-            user_prompt = st.text_input("Enter your prompt to ask about this image", placeholder="e.g., What's in this image?")
-
             # Encode the image to base64
             base64_image = encode_image(uploaded_image)
 
-            # Custom-styled button
-            button_style = """
-                <style>
-                    .stButton button {
-                        background-color: #4CAF50;
-                        color: white;
-                        font-size: 16px;
-                        padding: 8px 16px;
-                        border-radius: 8px;
-                        border: none;
-                    }
-                </style>
-            """
-            st.markdown(button_style, unsafe_allow_html=True)
+            # Initialize Groq client
+            client = Groq(api_key=st.session_state['api_key'])
 
-            # Call Groq API when the user submits their prompt
-            if st.button("Submit Prompt"):
+            # Only analyze the image if it's the first upload
+            if not st.session_state['messages']:
+                # Create chat completion for initial image analysis
+                initial_analysis = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": "Please analyze this image."
+                        },
+                        {
+                            "role": "user",
+                            "content": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    ],
+                    model=MODEL_NAME,
+                    temperature=TEMPERATURE,
+                    max_tokens=MAX_TOKENS,
+                    top_p=TOP_P,
+                    stream=STREAM,
+                    stop=STOP
+                )
+
+                # Store the initial analysis and image in session state
+                initial_response = initial_analysis.choices[0].message.content
+                st.session_state['messages'].append({"role": "ai", "content": initial_response})
+
+                # Display the initial AI response to the image
+                st.write("AI Initial Analysis:", initial_response)
+
+            # Now allow the user to ask follow-up questions
+            user_prompt = st.text_input("Ask a follow-up question about this image", placeholder="e.g., What is shown in this image?")
+
+            # Handle follow-up questions
+            if st.button("Submit Follow-up Question"):
                 if user_prompt:
-                    client = Groq(api_key=st.session_state['api_key'])  # Use the user's API key
+                    # Append the user's question to the messages
+                    st.session_state['messages'].append({"role": "user", "content": user_prompt})
 
-                    # Create chat completion with the prompt and additional parameters
-                    chat_completion = client.chat.completions.create(
-                        messages=[
+                    # Create follow-up question including the image
+                    follow_up_analysis = client.chat.completions.create(
+                        messages=st.session_state['messages'] + [
                             {
                                 "role": "user",
-                                "content": [
-                                    {"type": "text", "text": user_prompt},  # Use the user's prompt
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/jpeg;base64,{base64_image}",
-                                        },
-                                    },
-                                ],
+                                "content": f"data:image/jpeg;base64,{base64_image}"
                             }
                         ],
-                        model=MODEL_NAME,  # Use the constant for the model name
-                        temperature=TEMPERATURE,  # Adjust output randomness
-                        max_tokens=MAX_TOKENS,  # Limit the number of tokens in response
-                        top_p=TOP_P,  # Control nucleus sampling
-                        stream=STREAM,  # Set streaming behavior
-                        stop=STOP  # Optional stop sequence
+                        model=MODEL_NAME,
+                        temperature=TEMPERATURE,
+                        max_tokens=MAX_TOKENS,
+                        top_p=TOP_P,
+                        stream=STREAM,
+                        stop=STOP
                     )
 
-                    # Display AI's response
-                    response = chat_completion.choices[0].message.content
-                    st.write("Vision:", response)
+                    # Display AI's response to the follow-up question
+                    follow_up_response = follow_up_analysis.choices[0].message.content
+                    st.session_state['messages'].append({"role": "ai", "content": follow_up_response})
+                    st.write("AI Follow-up Response:", follow_up_response)
                 else:
-                    st.warning("Please enter a prompt to submit.")
+                    st.warning("Please enter a follow-up question.")
     else:
         st.warning("Please provide your API key to continue.")
 
