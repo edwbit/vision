@@ -3,7 +3,7 @@ import base64
 from groq import Groq
 
 # Constants
-MODEL_NAME = "llava-v1.5-7b-4096-preview"  # Use the correct model
+MODEL_NAME = "llama-3.2-11b-vision-preview"  # Use the correct model
 TEMPERATURE = 1  # Adjust as needed for randomness
 MAX_TOKENS = 1024  # Limit the response length
 TOP_P = 1  # Set to 1 to consider all tokens
