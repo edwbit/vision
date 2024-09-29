@@ -25,7 +25,11 @@ def main():
     # Input box for the API key if not already provided
     if not st.session_state['api_key']:
         st.session_state['api_key'] = st.text_input("Enter your Groq API Key", type="password")
-    
+
+    # Initialize session state for conversation messages
+    if 'messages' not in st.session_state:
+        st.session_state['messages'] = []
+
     # If the API key is entered, continue with the app
     if st.session_state['api_key']:
         # Upload an image
@@ -41,33 +45,38 @@ def main():
             # Initialize Groq client
             client = Groq(api_key=st.session_state['api_key'])
 
-            # Create chat completion for initial image analysis
-            initial_analysis = client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Please analyze this image."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}",
+            # Only analyze the image if it's the first upload
+            if not st.session_state['messages']:
+                # Create chat completion for initial image analysis
+                initial_analysis = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Please analyze this image."},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_image}",
+                                    },
                                 },
-                            },
-                        ],
-                    }
-                ],
-                model=MODEL_NAME,
-                temperature=TEMPERATURE,
-                max_tokens=MAX_TOKENS,
-                top_p=TOP_P,
-                stream=STREAM,
-                stop=STOP
-            )
+                            ],
+                        }
+                    ],
+                    model=MODEL_NAME,
+                    temperature=TEMPERATURE,
+                    max_tokens=MAX_TOKENS,
+                    top_p=TOP_P,
+                    stream=STREAM,
+                    stop=STOP
+                )
 
-            # Display the initial AI response to the image
-            initial_response = initial_analysis.choices[0].message.content
-            st.write("AI Initial Analysis:", initial_response)
+                # Store the initial analysis and image in session state
+                initial_response = initial_analysis.choices[0].message.content
+                st.session_state['messages'].append({"role": "ai", "content": initial_response})
+
+                # Display the initial AI response to the image
+                st.write("AI Initial Analysis:", initial_response)
 
             # Now allow the user to ask follow-up questions
             user_prompt = st.text_input("Ask a follow-up question about this image", placeholder="e.g., What is shown in this image?")
@@ -75,14 +84,12 @@ def main():
             # Handle follow-up questions
             if st.button("Submit Follow-up Question"):
                 if user_prompt:
+                    # Append the user's question to the messages
+                    st.session_state['messages'].append({"role": "user", "content": user_prompt})
+
+                    # Create follow-up question including the image
                     follow_up_analysis = client.chat.completions.create(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text": user_prompt}
-                                ],
-                            },
+                        messages=st.session_state['messages'] + [
                             {
                                 "role": "user",
                                 "content": [
@@ -105,6 +112,7 @@ def main():
 
                     # Display AI's response to the follow-up question
                     follow_up_response = follow_up_analysis.choices[0].message.content
+                    st.session_state['messages'].append({"role": "ai", "content": follow_up_response})
                     st.write("AI Follow-up Response:", follow_up_response)
                 else:
                     st.warning("Please enter a follow-up question.")
