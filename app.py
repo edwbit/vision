@@ -63,7 +63,7 @@ def main():
                             {
                                 "role": "user",
                                 "content": [
-                                    {"type": "text", "text": user_prompt},
+                                    {"type": "text", "text":"Analyze this image carefully"},
                                     {
                                         "type": "image_url",
                                         "image_url": {
