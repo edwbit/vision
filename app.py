@@ -3,7 +3,7 @@ import base64
 from groq import Groq
 
 # Constants
-MODEL_NAME = "llava-v1.5-7b-4096-preview"  # Replace with the correct model
+MODEL_NAME = "llama-3.2-11b-vision-preview"  # Replace with the correct model
 TEMPERATURE = 1  # Adjust as needed for randomness
 MAX_TOKENS = 1024  # Limit the response length
 TOP_P = 1  # Set to 1 to consider all tokens
@@ -21,6 +21,10 @@ def main():
     # Check if the API key is already in session state
     if 'api_key' not in st.session_state:
         st.session_state['api_key'] = ''
+    
+    # Check if message history is in session state
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
 
     # Input box for the API key if not already provided
     if not st.session_state['api_key']:
@@ -38,45 +42,60 @@ def main():
             # Encode the image to base64
             base64_image = encode_image(uploaded_image)
 
-            # Analyze the image immediately after upload
+            # Initialize the Groq client
             client = Groq(api_key=st.session_state['api_key'])  # Use the user's API key
 
-            # Create chat completion for initial image analysis
-            initial_analysis = client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Please analyze this image."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}",
+            # Analyze the image immediately after upload
+            if len(st.session_state.messages) == 0:
+                initial_analysis = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Please analyze this image."},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_image}",
+                                    },
                                 },
-                            },
-                        ],
-                    }
-                ],
-                model=MODEL_NAME,
-                temperature=TEMPERATURE,
-                max_tokens=MAX_TOKENS,
-                top_p=TOP_P,
-                stream=STREAM,
-                stop=STOP
-            )
+                            ],
+                        }
+                    ],
+                    model=MODEL_NAME,
+                    temperature=TEMPERATURE,
+                    max_tokens=MAX_TOKENS,
+                    top_p=TOP_P,
+                    stream=STREAM,
+                    stop=STOP
+                )
 
-            # Display the initial AI response to the image
-            initial_response = initial_analysis.choices[0].message.content
-            st.write("AI Initial Analysis:", initial_response)
+                # Display the initial AI response to the image
+                initial_response = initial_analysis.choices[0].message.content
+                st.write("AI Initial Analysis:", initial_response)
 
-            # Now allow the user to ask follow-up questions
+                # Append the initial analysis to message history
+                st.session_state.messages.append({"role": "ai", "content": initial_response})
+
+            # Display conversation history
+            for message in st.session_state.messages:
+                if message["role"] == "user":
+                    st.write("User:", message["content"])
+                else:
+                    st.write("AI:", message["content"])
+
+            # Allow the user to ask follow-up questions
             user_prompt = st.text_input("Ask a follow-up question about this image", placeholder="e.g., Can you tell me more?")
 
             # Handle follow-up questions
-            if st.button("Submit Follow-up Question"):
+            if st.button("Submit Question"):
                 if user_prompt:
+                    # Append user question to message history
+                    st.session_state.messages.append({"role": "user", "content": user_prompt})
+
+                    # Make API call with the updated message history
                     follow_up_analysis = client.chat.completions.create(
-                        messages=[
+                        messages=st.session_state.messages + [
                             {
                                 "role": "user",
                                 "content": [
@@ -98,9 +117,12 @@ def main():
                         stop=STOP
                     )
 
-                    # Display AI's response to the follow-up question
+                    # Get and display AI's response to the follow-up question
                     follow_up_response = follow_up_analysis.choices[0].message.content
                     st.write("AI Follow-up Response:", follow_up_response)
+
+                    # Append AI response to message history
+                    st.session_state.messages.append({"role": "ai", "content": follow_up_response})
                 else:
                     st.warning("Please enter a follow-up question.")
     else:
