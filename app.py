@@ -17,7 +17,7 @@ def encode_image(image):
 # Streamlit app
 def main():
     st.title("AI Image Analysis")
-    st.caption("Developed by ebb with AI assistance.")
+    st.caption("Developed by Edwin Bitco with AI assistance.")
     
     # Initialize session state for API key
     if 'api_key' not in st.session_state:
