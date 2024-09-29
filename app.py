@@ -22,6 +22,7 @@ def main():
     # Check if the API key is already in session state
     if 'api_key' not in st.session_state:
         st.session_state['api_key'] = ''
+    
     if 'api_key_entered' not in st.session_state:
         st.session_state['api_key_entered'] = False
 
@@ -29,7 +30,7 @@ def main():
     if not st.session_state['api_key_entered']:
         api_key_input = st.text_input("Enter your Groq API Key", type="password")
 
-        # Update session state if the API key is entered and confirmed with Enter key
+        # Update session state if the API key is entered
         if api_key_input:
             st.session_state['api_key'] = api_key_input  # Store the API key in session state
             st.session_state['api_key_entered'] = True  # Set flag to indicate API key has been entered
@@ -79,8 +80,6 @@ def main():
                     # Display the AI response to the image
                     initial_response = initial_analysis.choices[0].message.content
                     st.write("AI Initial Analysis:", initial_response)
-    else:
-        st.warning("Please provide your API key to continue.")
 
 if __name__ == "__main__":
     main()
