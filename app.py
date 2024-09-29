@@ -41,22 +41,7 @@ def main():
             # Encode the image to base64
             base64_image = encode_image(uploaded_image)
 
-            # Custom-styled button
-            button_style = """
-                <style>
-                    .stButton button {
-                        background-color: #4CAF50;
-                        color: white;
-                        font-size: 16px;
-                        padding: 8px 16px;
-                        border-radius: 8px;
-                        border: none;
-                    }
-                </style>
-            """
-            st.markdown(button_style, unsafe_allow_html=True)
-
-            # Call Groq API when the user submits their prompt
+            # Use the default Streamlit button
             if st.button("Submit Prompt"):
                 if user_prompt:
                     client = Groq(api_key=st.session_state['api_key'])  # Use the user's API key
