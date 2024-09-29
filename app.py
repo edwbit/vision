@@ -35,24 +35,52 @@ def main():
             # Display the uploaded image
             st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
 
-            # Prompt for the user to ask questions about the image
-            user_prompt = st.text_input("Enter your prompt to ask about this image", placeholder="e.g., What's in this image?")
-
             # Encode the image to base64
             base64_image = encode_image(uploaded_image)
 
-            # Use the default Streamlit button
-            if st.button("Submit Prompt"):
-                if user_prompt:
-                    client = Groq(api_key=st.session_state['api_key'])  # Use the user's API key
+            # Analyze the image immediately after upload
+            client = Groq(api_key=st.session_state['api_key'])  # Use the user's API key
 
-                    # Create chat completion with the prompt and additional parameters
-                    chat_completion = client.chat.completions.create(
+            # Create chat completion for initial image analysis
+            initial_analysis = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Please analyze this image."},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}",
+                                },
+                            },
+                        ],
+                    }
+                ],
+                model=MODEL_NAME,
+                temperature=TEMPERATURE,
+                max_tokens=MAX_TOKENS,
+                top_p=TOP_P,
+                stream=STREAM,
+                stop=STOP
+            )
+
+            # Display the initial AI response to the image
+            initial_response = initial_analysis.choices[0].message.content
+            st.write("AI Initial Analysis:", initial_response)
+
+            # Now allow the user to ask follow-up questions
+            user_prompt = st.text_input("Ask a follow-up question about this image", placeholder="e.g., Can you tell me more?")
+
+            # Handle follow-up questions
+            if st.button("Submit Follow-up Question"):
+                if user_prompt:
+                    follow_up_analysis = client.chat.completions.create(
                         messages=[
                             {
                                 "role": "user",
                                 "content": [
-                                    {"type": "text", "text": user_prompt},  # Use the user's prompt
+                                    {"type": "text", "text": user_prompt},
                                     {
                                         "type": "image_url",
                                         "image_url": {
@@ -62,19 +90,19 @@ def main():
                                 ],
                             }
                         ],
-                        model=MODEL_NAME,  # Use the constant for the model name
-                        temperature=TEMPERATURE,  # Adjust output randomness
-                        max_tokens=MAX_TOKENS,  # Limit the number of tokens in response
-                        top_p=TOP_P,  # Control nucleus sampling
-                        stream=STREAM,  # Set streaming behavior
-                        stop=STOP  # Optional stop sequence
+                        model=MODEL_NAME,
+                        temperature=TEMPERATURE,
+                        max_tokens=MAX_TOKENS,
+                        top_p=TOP_P,
+                        stream=STREAM,
+                        stop=STOP
                     )
 
-                    # Display AI's response
-                    response = chat_completion.choices[0].message.content
-                    st.write("Vision:", response)
+                    # Display AI's response to the follow-up question
+                    follow_up_response = follow_up_analysis.choices[0].message.content
+                    st.write("AI Follow-up Response:", follow_up_response)
                 else:
-                    st.warning("Please enter a prompt to submit.")
+                    st.warning("Please enter a follow-up question.")
     else:
         st.warning("Please provide your API key to continue.")
 
