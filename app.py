@@ -22,18 +22,21 @@ def main():
     # Check if the API key is already in session state
     if 'api_key' not in st.session_state:
         st.session_state['api_key'] = ''
+    if 'api_key_entered' not in st.session_state:
+        st.session_state['api_key_entered'] = False
 
     # Input box for the API key if not already provided
-    if st.session_state['api_key'] == '':
+    if not st.session_state['api_key_entered']:
         api_key_input = st.text_input("Enter your Groq API Key", type="password")
         
         # Update session state if the API key is entered
         if api_key_input:
             st.session_state['api_key'] = api_key_input  # Store the API key in session state
+            st.session_state['api_key_entered'] = True  # Set flag to indicate API key has been entered
             st.success("API key entered successfully!")
 
     # If the API key is entered, continue with the app
-    if st.session_state['api_key']:
+    if st.session_state['api_key_entered']:
         # Upload an image
         uploaded_image = st.file_uploader("Upload an image (max size: 20 MB)", type=["jpg", "jpeg", "png"])
 
