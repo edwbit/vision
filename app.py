@@ -62,11 +62,15 @@ def main():
                         messages=[
                             {
                                 "role": "user",
-                                "content": "Please analyze this image."
-                            },
-                            {
-                                "role": "user",
-                                "content": f"data:image/jpeg;base64,{base64_image}"
+                                "content": [
+                                    {"type": "text", "text": user_prompt},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_image}",
+                                        },
+                                    },
+                                ],
                             }
                         ],
                         model=MODEL_NAME,
