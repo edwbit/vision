@@ -42,10 +42,13 @@ def main():
         uploaded_image = st.file_uploader("Upload an image (max size: 20 MB)", type=["jpg", "jpeg", "png"])
 
         # Model selection
-        model_options = ["llava-v1.5-7b-4096-preview","llama-3.2-11b-vision-preview"]
+        model_options = ["llava-v1.5-7b-4096-preview", "llama-3.2-11b-vision-preview"]
         selected_model = st.selectbox("**Select Model**", model_options)
 
-        if uploaded_image is not None:
+        # Input box for user's instruction
+        user_instruction = st.text_area("Enter your instruction for the AI to analyze the image:")
+
+        if uploaded_image is not None and user_instruction:
             # Check if the uploaded image exceeds the size limit
             if uploaded_image.size > UPLOAD_LIMIT_MB * 1024 * 1024:
                 st.warning("The uploaded image exceeds the 20MB limit. Please upload a smaller image.")
@@ -60,43 +63,41 @@ def main():
                     # Initialize Groq client
                     client = Groq(api_key=st.session_state['api_key'])
 
-                    # Create chat completion for initial image analysis
-                    if st.button("Analyze Image"):
-                        # Use the selected model from the dropdown
-                        MODEL_NAME = selected_model
+                    # Use the selected model from the dropdown
+                    MODEL_NAME = selected_model
 
-                        initial_analysis = client.chat.completions.create(
-                            messages=[
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {"type": "text", "text": "Analyze, identify and describe the image carefully. Give impression based on analysis and description"},
-                                        {
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": f"data:image/jpeg;base64,{base64_image}",
-                                            },
+                    # Create chat completion based on user's instruction and the uploaded image
+                    analysis = client.chat.completions.create(
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": user_instruction},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_image}",
                                         },
-                                    ],
-                                }
-                            ],
-                            model=MODEL_NAME,
-                            temperature=TEMPERATURE,
-                            max_tokens=MAX_TOKENS,
-                            top_p=TOP_P,
-                            stream=STREAM,
-                            stop=STOP
-                        )
+                                    },
+                                ],
+                            }
+                        ],
+                        model=MODEL_NAME,
+                        temperature=TEMPERATURE,
+                        max_tokens=MAX_TOKENS,
+                        top_p=TOP_P,
+                        stream=STREAM,
+                        stop=STOP
+                    )
 
-                        # Display the AI response to the image
-                        initial_response = initial_analysis.choices[0].message.content
-                        st.write("AI Initial Analysis:", initial_response)
+                    # Display the AI's response
+                    response = analysis.choices[0].message.content
+                    st.write("AI Response:", response)
                 
                 except AuthenticationError:
                     st.error("Authentication failed. Please check your API key.")
                 except Exception as e:
-                    # Optionally, log the error for debugging
-                    st.error("An unexpected error occurred. Please try again later.")
+                    st.error(f"An unexpected error occurred: {e}")
 
 if __name__ == "__main__":
     main()
