@@ -45,68 +45,63 @@ def main():
         model_options = ["llava-v1.5-7b-4096-preview", "llama-3.2-11b-vision-preview"]
         selected_model = st.selectbox("**Select Model**", model_options)
 
-        # Create columns for inline layout
-        col1, col2 = st.columns([3, 1])  # Adjust the proportions as necessary
+        # Input box for user's instruction (now using st.text_input)
+        user_instruction = st.text_input("Enter your instruction for the AI to analyze the image:")
 
-        # Input box for user's instruction (inside col1)
-        with col1:
-            user_instruction = st.text_area("Enter your instruction for the AI to analyze the image:")
-
-        # OK button (inside col2)
-        with col2:
-            if st.button("OK"):
-                if uploaded_image is not None and user_instruction:
-                    # Check if the uploaded image exceeds the size limit
-                    if uploaded_image.size > UPLOAD_LIMIT_MB * 1024 * 1024:
-                        st.warning("The uploaded image exceeds the 20MB limit. Please upload a smaller image.")
-                    else:
-                        # Display the uploaded image
-                        st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
-
-                        # Encode the image to base64
-                        base64_image = encode_image(uploaded_image)
-
-                        try:
-                            # Initialize Groq client
-                            client = Groq(api_key=st.session_state['api_key'])
-
-                            # Use the selected model from the dropdown
-                            MODEL_NAME = selected_model
-
-                            # Create chat completion based on user's instruction and the uploaded image
-                            analysis = client.chat.completions.create(
-                                messages=[
-                                    {
-                                        "role": "user",
-                                        "content": [
-                                            {"type": "text", "text": user_instruction},
-                                            {
-                                                "type": "image_url",
-                                                "image_url": {
-                                                    "url": f"data:image/jpeg;base64,{base64_image}",
-                                                },
-                                            },
-                                        ],
-                                    }
-                                ],
-                                model=MODEL_NAME,
-                                temperature=TEMPERATURE,
-                                max_tokens=MAX_TOKENS,
-                                top_p=TOP_P,
-                                stream=STREAM,
-                                stop=STOP
-                            )
-
-                            # Display the AI's response
-                            response = analysis.choices[0].message.content
-                            st.write("AI Response:", response)
-                        
-                        except AuthenticationError:
-                            st.error("Authentication failed. Please check your API key.")
-                        except Exception as e:
-                            st.error(f"An unexpected error occurred: {e}")
+        # OK button to trigger the analysis
+        if st.button("OK"):
+            if uploaded_image is not None and user_instruction:
+                # Check if the uploaded image exceeds the size limit
+                if uploaded_image.size > UPLOAD_LIMIT_MB * 1024 * 1024:
+                    st.warning("The uploaded image exceeds the 20MB limit. Please upload a smaller image.")
                 else:
-                    st.warning("Please upload an image and provide an instruction before clicking OK.")
+                    # Display the uploaded image
+                    st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
+
+                    # Encode the image to base64
+                    base64_image = encode_image(uploaded_image)
+
+                    try:
+                        # Initialize Groq client
+                        client = Groq(api_key=st.session_state['api_key'])
+
+                        # Use the selected model from the dropdown
+                        MODEL_NAME = selected_model
+
+                        # Create chat completion based on user's instruction and the uploaded image
+                        analysis = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {"type": "text", "text": user_instruction},
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                            },
+                                        },
+                                    ],
+                                }
+                            ],
+                            model=MODEL_NAME,
+                            temperature=TEMPERATURE,
+                            max_tokens=MAX_TOKENS,
+                            top_p=TOP_P,
+                            stream=STREAM,
+                            stop=STOP
+                        )
+
+                        # Display the AI's response
+                        response = analysis.choices[0].message.content
+                        st.write("AI Response:", response)
+                    
+                    except AuthenticationError:
+                        st.error("Authentication failed. Please check your API key.")
+                    except Exception as e:
+                        st.error(f"An unexpected error occurred: {e}")
+            else:
+                st.warning("Please upload an image and provide an instruction before clicking OK.")
 
 if __name__ == "__main__":
     main()
